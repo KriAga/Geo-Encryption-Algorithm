@@ -68,16 +68,16 @@ def encryptDecryptBinFile(filename,CMT):
     EncryptedFile.write(encryptedData)
     EncryptedFile.close()
     # print("EncryptedData", EncryptedData)
-    print(encryptedData)
+    # print(encryptedData)
     decryptedData = Decryption.decryptToByteArray(encryptedData, CMT)
     print(len(decryptedData))
     decryptedFile  = open(filename+".decrypted.png","wb")
-   
+    decryptedFile.write(bytes(decryptedData))
     # decryptedFile.close()
-    for i in range(len(decryptedData)):
-        if(decryptedData[i] != intArray[i]):
-            print(decryptedData[i] , intArray[i])
-        decryptedFile.write(bytes([decryptedData[i]]))
+    # for i in range(len(decryptedData)):
+    #     if(decryptedData[i] != intArray[i]):
+    #         print(decryptedData[i] , intArray[i])
+    #     decryptedFile.write(bytes([decryptedData[i]]))
     decryptedFile.close()
 
     # binDecryptedDataArray =[ bytes(i,encoding='utf-16') for i in decryptedData]
@@ -91,4 +91,4 @@ def encryptDecryptBinFile(filename,CMT):
     # decryptedFile.close()
 
 
-encryptDecryptBinFile("Data.txt",CMT)
+encryptDecryptBinFile("Data.png",CMT)
