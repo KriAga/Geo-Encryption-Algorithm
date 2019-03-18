@@ -88,7 +88,9 @@ def encryptString(String, CMT):
     return encrypted
 def encryptByteArray(Bytes,CMT):
     encrypted =""
-    for byte in Bytes:
+    for i in range(len(Bytes)):
+        print(i)
+        byte=Bytes[i]
         x,y = encryptByte(byte,CMT)
         encrypted += str(x) + " " + str(y) + " "
     return encrypted
