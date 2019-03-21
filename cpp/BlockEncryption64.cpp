@@ -43,7 +43,6 @@ class Encryption{
         this->CMT = CMT;
     }
     public: std::vector<Point> encryptByteArray(unsigned long int bytes[],int size){
-            std::cout<<"encrypt";
             std::vector<Point> points;
             for(int i=0;i<size;i++)
                 points.push_back(Point());
@@ -60,7 +59,7 @@ class Encryption{
             std::uniform_int_distribution<> distrY(0, ymax); 
             std::uniform_int_distribution<> distrFloat(0 , pow(2,16));
             #pragma omp parallel for
-            for(int i = 0 ;i<1;i++){
+            for(int i = 0 ;i<size;i++){
                 unsigned long int byte = bytes[i];    
                 int intX = distrX(eng);
                 int intY = distrY(eng);
@@ -70,7 +69,7 @@ class Encryption{
                 std::string baseY = std::to_string(intY- (intY % width));
                 uint128_t key = (uint128_t)((this->CMT["data"][baseX][baseY]).get<std::string>());         
                 uint128_t floatXY = ( ((uint128_t)(floatX)) << FPPB ) +floatY;
-                uint128_t floatXYXor = (uint128_t)(floatXY ^ key);
+                uint128_t floatXYXor = ( key ^ floatXY);
                 uint128_t beta = (uint128_t)((floatXYXor) % (totalChars));
                 uint128_t diff=0;
                 if(beta > byte){
@@ -84,16 +83,6 @@ class Encryption{
                 uint128_t newFloatXY = (uint128_t)(floatXYXor ^ key);
                 unsigned long int newFloatX = (unsigned long int)(newFloatXY >> FPPB);
                 unsigned long int newFloatY = (unsigned long int)(newFloatXY & (unsigned long int)(totalChars-1));
-                std::cout<<"floatX"<<floatX<<std::endl;
-                std::cout<<"floatY"<<floatY<<std::endl;
-                std::cout<<"floatXY"<<floatXY<<std::endl;
-                std::cout<<"key"<<key<<std::endl;
-                std::cout<<"floatXYXOr"<<floatXYXor<<std::endl;
-                std::cout<<"byte"<<byte<<std::endl;
-                std::cout<<"beta"<<beta<<std::endl;
-                std::cout<<"diff"<<diff<<std::endl;
-                std::cout<<"newfloatX"<<newFloatX<<std::endl;
-                std::cout<<"newfloatY"<<newFloatY<<std::endl;
                 points[i].intX=intX;
                 points[i].floatX=newFloatX;
                 points[i].intY=intY;
@@ -104,12 +93,10 @@ class Encryption{
     public: unsigned long int* decryptToByteArray(std::vector<Point> encrypted){
         int FPPB = (int)(this->CMT["config"]["FPPB"]);
         int width = (int)(this->CMT["config"]["width"]);
-        // std::cout<<"size"<<sizeof(unsigned __int128)<<std::endl;
         uint128_t totalChars = (uint128_t)pow(cpp_int(2),FPPB);
-        // cout<<"totalChars"<<totalChars;
         unsigned long int *bytes = new unsigned long int[encrypted.size()];
         #pragma omp parallel for
-        for(int i=0;i<1;i++){ 
+        for(int i=0;i<encrypted.size();i++){ 
             unsigned int intX,intY;
             unsigned long int floatX,floatY;
             uint128_t floatXY = 0;
@@ -119,17 +106,11 @@ class Encryption{
             intY = encrypted[i].intY;
             baseX = std::to_string(intX - (intX % width));
             baseY = std::to_string(intY- (intY % width));
-            //key  =  (uint128_t)(this->CMT["data"][baseX][baseY]);
             key = (uint128_t)((this->CMT["data"][baseX][baseY]).get<std::string>());
-            // std::cout<<"key"<<key<<std::endl;
             floatX = (encrypted[i].floatX);
             floatY = (encrypted[i].floatY);
-            floatXY = ( floatX << FPPB ) +floatY;
-            //cout<<"total"<<totalChars<<std::endl;
-            // unsigned long long int x = (floatXY ^ key) % totalChars;
+            floatXY = ( ((uint128_t)(floatX)) << FPPB ) +floatY;
             bytes[i] = (unsigned long int)((floatXY ^ key)  % totalChars) ;
-            std::cout<<floatX<<" "<<floatY<<" "<<key<<" "<<bytes[i]<<std::endl;
-            // std::cout<<floatXY<<" "<<key<<" "<<bytes[i]<<std::endl;
         }
         return bytes;
     }
@@ -143,7 +124,7 @@ int main(){
     std::vector<Point> encrypted;
     std::ifstream fstr;
     std::string path="../";
-    std::string filename = "Data.txt";
+    std::string filename = "Data256.bin";
     int fileSize = GetFileSize(path+filename);
     unsigned long int *bytes = new unsigned long int[fileSize/8];
     fstr.open(path+filename, std::ios::binary);
@@ -171,6 +152,5 @@ int main(){
     for(int i = 0; i < fileSize/8; ++i)
         file.write((char*)(decrypted + i), sizeof(unsigned long int));
     file.close();
-    std::cout<<"size of unsigned long int"<<sizeof(unsigned long int);
     return 0;
  }
