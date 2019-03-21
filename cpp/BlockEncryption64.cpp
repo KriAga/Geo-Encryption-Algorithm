@@ -124,7 +124,7 @@ int main(){
     std::vector<Point> encrypted;
     std::ifstream fstr;
     std::string path="../";
-    std::string filename = "Data256.bin";
+    std::string filename = "Data.txt";
     int fileSize = GetFileSize(path+filename);
     unsigned long int *bytes = new unsigned long int[fileSize/8];
     fstr.open(path+filename, std::ios::binary);
@@ -134,19 +134,48 @@ int main(){
         bytes[i] = 0;
         bytes[i] = block;
     }
+    fstr.close();
     double start, end;
     start = omp_get_wtime();
     encrypted = enc.encryptByteArray(bytes,fileSize/8);
     end = omp_get_wtime();
     double delta = end-start;
     std::cout<<"Time to encrypt "<<fileSize<<" Bytes: "<<delta<<std::endl;
+    std::ofstream file;
+    file.open(filename+".encrypted", std::ios_base::binary);
+    assert(file.is_open());
+    for(int i = 0; i < encrypted.size(); ++i){
+        file.write((char*)(&encrypted[i].intX), sizeof(int));
+        file.write((char*)(&encrypted[i].floatX), sizeof(unsigned long int));
+        file.write((char*)(&encrypted[i].intY), sizeof(int));
+        file.write((char*)(&encrypted[i].floatY), sizeof(unsigned long int));
+    }
+    file.close();
+    fstr.open(filename+".encrypted", std::ios_base::binary);
+    assert(fstr.is_open());
+    unsigned int intX = 0;
+    unsigned int intY = 0;
+    unsigned long int floatX = 0;
+    unsigned long int floatY = 0;
+    std::vector<Point> encryptedFromFile;
+    for(int i=0;i<fileSize/8;i++)
+        encryptedFromFile.push_back(Point());
+    for(int i=0;i<fileSize/8;i++){
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intX), 4);
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatX), 8);
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intY), 4);
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatY), 8);
+        std::cout<<"intx"<<encryptedFromFile[i].intX<<"inty"<<encryptedFromFile[i].intY<<"floatX"<<encryptedFromFile[i].floatX<<"floatY"<<encryptedFromFile[i].floatY<<std::endl;
+    }
     unsigned long int *decrypted;
+    // for(int i =0 ;i< 10 ;i++){
+    //     std::cout<<encryptedFromFile[i].intX<<std::endl;
+    // }
     start = omp_get_wtime();
-    decrypted = enc.decryptToByteArray(encrypted);
+    decrypted = enc.decryptToByteArray(encryptedFromFile);
     end = omp_get_wtime();
     delta = end-start;
     std::cout<<"Time to decrypt to "<<fileSize<<" Bytes: "<<delta<<std::endl;
-    std::ofstream file;
     file.open(filename, std::ios_base::binary);
     assert(file.is_open());
     for(int i = 0; i < fileSize/8; ++i)
