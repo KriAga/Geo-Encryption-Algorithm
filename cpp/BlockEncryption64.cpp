@@ -122,6 +122,7 @@ int main(){
     std::cout<<pow(2,64);
     Encryption enc = Encryption(j);
     std::vector<Point> encrypted;
+    //READ FILE INTO BYTES ARRAY
     std::ifstream fstr;
     std::string path="../";
     std::string filename = "Data.mkv";
@@ -146,12 +147,18 @@ int main(){
         bytes[blockCount-1] = block;
     }
     fstr.close();
+    //FILE READ DONE
+
+    //ENCRYPT FILE
     double start, end;
     start = omp_get_wtime();
     encrypted = enc.encryptByteArray(bytes,blockCount);
     end = omp_get_wtime();
     double delta = end-start;
     std::cout<<"Time to encrypt "<<fileSize<<" Bytes: "<<delta<<std::endl;
+
+    //FILE ENCRYPTED TO VECTOR OF POINTS
+    //WRITE THE VECTOR OF POINTS TO ENCRYPTED FILE
     std::ofstream file;
     file.open(filename+".encrypted", std::ios_base::binary);
     assert(file.is_open());
@@ -164,12 +171,13 @@ int main(){
         file.write((char*)(&encrypted[i].floatY), sizeof(unsigned long int));
     }
     file.close();
+    //WRITTEN THE ENCRYPTED VECTOR
+
+    //DECRYPT PROCESS
+
+    //READ THE ENCRYPTED FILE TO VECTOR OF POINTS
     fstr.open(filename+".encrypted", std::ios_base::binary);
     assert(fstr.is_open());
-    unsigned int intX = 0;
-    unsigned int intY = 0;
-    unsigned long int floatX = 0;
-    unsigned long int floatY = 0;
     std::vector<Point> encryptedFromFile;
     for(int i=0;i<blockCount;i++)
         encryptedFromFile.push_back(Point());
@@ -182,14 +190,14 @@ int main(){
         fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intY), 4);
         fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatY), 8);
     }
+    //DECRYPT THE VECTOR OF POINTS
     unsigned long int *decrypted;
-    // for(int i =0 ;i< 10 ;i++){
-    //     std::cout<<encryptedFromFile[i].intX<<std::endl;
-    // }
     start = omp_get_wtime();
     decrypted = enc.decryptToByteArray(encryptedFromFile);
     end = omp_get_wtime();
     delta = end-start;
+    //VECTOR OF POINTS DECRYPTED
+    //WRITE THE DECRYPTED VALUES TO FILE
     std::cout<<"Time to decrypt to "<<fileSize<<" Bytes: "<<delta<<std::endl;
     file.open(filename, std::ios_base::binary);
     assert(file.is_open());
@@ -197,5 +205,6 @@ int main(){
         file.write((char*)(decrypted + i), sizeof(unsigned long int));
     file.write((char*)(decrypted+blockCount-1),decryptTailSize);
     file.close();
+    //DECRYPTED FILE WRITTEN
     return 0;
  }
