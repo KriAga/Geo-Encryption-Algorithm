@@ -6,17 +6,17 @@
 // using namespace std;
 
 class TestSuite{
-    void createBinFile(std::string filename, int size){
+    public: void createBinFile(std::string filename, int size){
         std::ofstream ofs(filename, std::ios::binary | std::ios::out);
         ofs.seekp((size) - 1);
         ofs.write("", 1);
     }
-    void createFiles(int maxFileSize){
+    public: void createFiles(int maxFileSize){
         for(int i = 1; i<=maxFileSize*1024; i*=10){
-            createBinFile(std::string("./Data/Data") + std::to_string(i) + ".bin", i*1024);
+            createBinFile(std::string("./Testing/Data/Data") + std::to_string(i) + ".bin", i*1024);
         }
     }
-    bool compareFile(std::string filename1, std::string filename2) {
+    public: bool compareFile(std::string filename1, std::string filename2) {
         FILE *fp1, *fp2;
         char ch1, ch2;
         fp1 = fopen(filename1.c_str(),  "r");
@@ -44,12 +44,9 @@ class TestSuite{
                 return true;
         }
     }
-    int numberOfIterations(std::string filename){
+    int calculateIterations(std::string filename){
         filename.erase(filename.begin(), filename.begin()+4);
         filename.erase(filename.end()-4, filename.end());
-        return(1000000/stoi(filename));
+        return(100000/stoi(filename));
     }
 };
-int main(){
-    std::cout<<numberOfIterations("Data1.bin");
-}

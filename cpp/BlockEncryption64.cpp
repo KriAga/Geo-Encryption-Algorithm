@@ -5,6 +5,7 @@
 #include<nlohmann/json.hpp>
 #include <omp.h>
 #include <boost/multiprecision/cpp_int.hpp>
+#include "Testing/TestSuite.cpp"
 
 using json = nlohmann::json;
 using namespace boost::multiprecision;
@@ -29,13 +30,6 @@ long GetFileSize(std::string filename)
     struct stat stat_buf;
     int rc = stat(filename.c_str(), &stat_buf);
     return rc == 0 ? stat_buf.st_size : -1;
-}
-std::vector<Point> generateVector(){
-    std::vector<Point> points;
-    for(int i=0;i<100000;i++)
-        points.push_back(Point(1,2,3,4));
-    std::cout<<"size "<<points.size();
-    return points;
 }
 class Encryption{
     json CMT;
@@ -116,95 +110,111 @@ class Encryption{
     }
 };
 int main(){
+    TestSuite testSuite;
+    testSuite.createFiles(100);
     std::ifstream i("../CMT64.json");
     json j;
     i >> j;
-    std::cout<<pow(2,64);
     Encryption enc = Encryption(j);
-    std::vector<Point> encrypted;
-    //READ FILE INTO BYTES ARRAY
-    std::ifstream fstr;
-    std::string path="../";
-    std::string filename = "Data.mkv";
-    int fileSize = GetFileSize(path+filename);
-    int tailSize = fileSize%8;
-    unsigned long int blockCount = fileSize/8;
-    if(tailSize>0)
-        blockCount++;
-    unsigned long int *bytes = new unsigned long int[blockCount];
-    fstr.open(path+filename, std::ios::binary);
-    unsigned long int block = 0;
-    
-    for(int i=0;i<fileSize/8;i++){
-        fstr.read(reinterpret_cast<char*>(&block), 8);
-        bytes[i] = 0;
-        bytes[i] = block;
-    }
-    block=0;
-    if(tailSize>0){
-        fstr.read(reinterpret_cast<char*>(&block), tailSize);
-        bytes[blockCount-1] = 0;
-        bytes[blockCount-1] = block;
-    }
-    fstr.close();
-    //FILE READ DONE
+    for(int fileCount=0;fileCount<4;fileCount++){
+        std::string filename = "Data"+std::to_string((int)pow(10,fileCount))+".bin";
+        //std::cout<<"filename "<<filecount<<" "<<filename<<std::endl;
+        std::string path="./Testing/";
+        double totalTimeToEncrypt = 0;
+        double totalTimeToDecrypt = 0;
+        for(int k=0;k<testSuite.calculateIterations(filename);k++){
 
-    //ENCRYPT FILE
-    double start, end;
-    start = omp_get_wtime();
-    encrypted = enc.encryptByteArray(bytes,blockCount);
-    end = omp_get_wtime();
-    double delta = end-start;
-    std::cout<<"Time to encrypt "<<fileSize<<" Bytes: "<<delta<<std::endl;
+            std::vector<Point> encrypted;
+            //READ FILE INTO BYTES ARRAY
+            std::ifstream fstr;
+            // std::string path="../";
+            // std::string filename = "Data.txt";
+            int fileSize = GetFileSize(path+"Data/"+filename);
+            int tailSize = fileSize%8;
+            unsigned long int blockCount = fileSize/8;
+            if(tailSize>0)
+                blockCount++;
+            unsigned long int *bytes = new unsigned long int[blockCount];
+            fstr.open(path+"Data/"+filename, std::ios::binary);
+            unsigned long int block = 0;
+            
+            for(int i=0;i<fileSize/8;i++){
+                fstr.read(reinterpret_cast<char*>(&block), 8);
+                bytes[i] = 0;
+                bytes[i] = block;
+            }
+            block=0;
+            if(tailSize>0){
+                fstr.read(reinterpret_cast<char*>(&block), tailSize);
+                bytes[blockCount-1] = 0;
+                bytes[blockCount-1] = block;
+            }
+            fstr.close();
+            //FILE READ DONE
 
-    //FILE ENCRYPTED TO VECTOR OF POINTS
-    //WRITE THE VECTOR OF POINTS TO ENCRYPTED FILE
-    std::ofstream file;
-    file.open(filename+".encrypted", std::ios_base::binary);
-    assert(file.is_open());
-    file.write((char*)(&tailSize),4);
-    std::cout<<"encrypt  tail size"<<tailSize<<std::endl;
-    for(int i = 0; i < encrypted.size(); ++i){
-        file.write((char*)(&encrypted[i].intX), sizeof(int));
-        file.write((char*)(&encrypted[i].floatX), sizeof(unsigned long int));
-        file.write((char*)(&encrypted[i].intY), sizeof(int));
-        file.write((char*)(&encrypted[i].floatY), sizeof(unsigned long int));
+            //ENCRYPT FILE
+            double start, end;
+            start = omp_get_wtime();
+            encrypted = enc.encryptByteArray(bytes,blockCount);
+            end = omp_get_wtime();
+            double delta = end-start;
+            totalTimeToEncrypt += delta;
+            //std::cout<<"Time to encrypt "<<fileSize<<" Bytes: "<<delta<<std::endl;
+
+            //FILE ENCRYPTED TO VECTOR OF POINTS
+            //WRITE THE VECTOR OF POINTS TO ENCRYPTED FILE
+            std::ofstream file;
+            file.open(path+"Encrypted/"+filename+".encrypted", std::ios_base::binary);
+            assert(file.is_open());
+            file.write((char*)(&tailSize),4);
+            //std::cout<<"encrypt  tail size"<<tailSize<<std::endl;
+            for(int i = 0; i < encrypted.size(); ++i){
+                file.write((char*)(&encrypted[i].intX), sizeof(int));
+                file.write((char*)(&encrypted[i].floatX), sizeof(unsigned long int));
+                file.write((char*)(&encrypted[i].intY), sizeof(int));
+                file.write((char*)(&encrypted[i].floatY), sizeof(unsigned long int));
+            }
+            file.close();
+            //WRITTEN THE ENCRYPTED VECTOR
+
+            //DECRYPT PROCESS
+
+            //READ THE ENCRYPTED FILE TO VECTOR OF POINTS
+            fstr.open(path+"Encrypted/"+filename+".encrypted", std::ios_base::binary);
+            assert(fstr.is_open());
+            std::vector<Point> encryptedFromFile;
+            for(int i=0;i<blockCount;i++)
+                encryptedFromFile.push_back(Point());
+            int decryptTailSize = 0;
+            fstr.read(reinterpret_cast<char*>(&decryptTailSize), 4);
+            //std::cout<<"decrypt  tail size"<<decryptTailSize<<std::endl;
+            for(int i=0;i<blockCount;i++){
+                fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intX), 4);
+                fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatX), 8);
+                fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intY), 4);
+                fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatY), 8);
+            }
+            //DECRYPT THE VECTOR OF POINTS
+            unsigned long int *decrypted;
+            start = omp_get_wtime();
+            decrypted = enc.decryptToByteArray(encryptedFromFile);
+            end = omp_get_wtime();
+            delta = end-start;
+            totalTimeToDecrypt+=delta;
+            //VECTOR OF POINTS DECRYPTED
+            //WRITE THE DECRYPTED VALUES TO FILE
+            //std::cout<<"Time to decrypt to "<<fileSize<<" Bytes: "<<delta<<std::endl;
+            file.open(path+"Decrypted/"+filename, std::ios_base::binary);
+            assert(file.is_open());
+            for(int i = 0; i < blockCount-1; ++i)
+                file.write((char*)(decrypted + i), sizeof(unsigned long int));
+            file.write((char*)(decrypted+blockCount-1),decryptTailSize);
+            file.close();
+            //std::cout<<fileCount<<" "<<k<<std::endl;
+        }
+        std::cout<<filename<<" encrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToEncrypt<<std::endl;
+        std::cout<<filename<<" decrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToDecrypt<<std::endl;
+        //DECRYPTED FILE WRITTEN
     }
-    file.close();
-    //WRITTEN THE ENCRYPTED VECTOR
-
-    //DECRYPT PROCESS
-
-    //READ THE ENCRYPTED FILE TO VECTOR OF POINTS
-    fstr.open(filename+".encrypted", std::ios_base::binary);
-    assert(fstr.is_open());
-    std::vector<Point> encryptedFromFile;
-    for(int i=0;i<blockCount;i++)
-        encryptedFromFile.push_back(Point());
-    int decryptTailSize = 0;
-    fstr.read(reinterpret_cast<char*>(&decryptTailSize), 4);
-    std::cout<<"decrypt  tail size"<<decryptTailSize<<std::endl;
-    for(int i=0;i<blockCount;i++){
-        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intX), 4);
-        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatX), 8);
-        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intY), 4);
-        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatY), 8);
-    }
-    //DECRYPT THE VECTOR OF POINTS
-    unsigned long int *decrypted;
-    start = omp_get_wtime();
-    decrypted = enc.decryptToByteArray(encryptedFromFile);
-    end = omp_get_wtime();
-    delta = end-start;
-    //VECTOR OF POINTS DECRYPTED
-    //WRITE THE DECRYPTED VALUES TO FILE
-    std::cout<<"Time to decrypt to "<<fileSize<<" Bytes: "<<delta<<std::endl;
-    file.open(filename, std::ios_base::binary);
-    assert(file.is_open());
-    for(int i = 0; i < blockCount-1; ++i)
-        file.write((char*)(decrypted + i), sizeof(unsigned long int));
-    file.write((char*)(decrypted+blockCount-1),decryptTailSize);
-    file.close();
-    //DECRYPTED FILE WRITTEN
     return 0;
  }
