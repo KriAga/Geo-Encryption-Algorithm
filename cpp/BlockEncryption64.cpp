@@ -116,7 +116,7 @@ int main(){
     json j;
     i >> j;
     Encryption enc = Encryption(j);
-    for(int fileCount=0;fileCount<4;fileCount++){
+    for(int fileCount=0;fileCount<6;fileCount++){
         std::string filename = "Data"+std::to_string((int)pow(10,fileCount))+".bin";
         //std::cout<<"filename "<<filecount<<" "<<filename<<std::endl;
         std::string path="./Testing/";
