@@ -1,11 +1,13 @@
 import secrets, struct, json
 import pickle
+import json
+
 def generateFPPDigits(FPPB):
     maxD = 2**FPPB
     FPPDigits = len(str(maxD))
     return FPPDigits
     
-def generateCodeMapTable(width,numberOfSectorsAcrossX,numberOfSectorsAcrossY,totalChars):
+def generateCodeMapTable(width,numberOfSectorsAcrossX,numberOfSectorsAcrossY,totalChars,filename):
     CMT = dict()
     CMT['config'] = dict()
     CMT['data'] = dict()
@@ -20,8 +22,10 @@ def generateCodeMapTable(width,numberOfSectorsAcrossX,numberOfSectorsAcrossY,tot
         for i in range(numberOfSectorsAcrossX):
             if(xmin not in CMT['data']):
                 CMT['data'][xmin] = dict()
-            CMT['data'][xmin][ymin] = secrets.randbits(CMT['config']['FPPB'] * 2)
+            CMT['data'][xmin][ymin] = str(secrets.randbits(CMT['config']['FPPB'] * 2))
             xmin+=width
         ymin+=width
-    with open("CMT.pickle","wb+") as fp:
+    with open(filename+".pickle","wb+") as fp:
         pickle.dump(CMT, fp)
+    with open(filename+'.json', 'w') as fp:
+        json.dump(CMT, fp,sort_keys=True,indent=4)
