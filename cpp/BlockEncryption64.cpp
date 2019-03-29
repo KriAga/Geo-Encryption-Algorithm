@@ -116,7 +116,7 @@ int main(){
     json j;
     i >> j;
     Encryption enc = Encryption(j);
-    for(int fileCount=0;fileCount<6;fileCount++){
+    for(int fileCount=0;fileCount<1 ;fileCount++){
         std::string filename = "Data"+std::to_string((int)pow(10,fileCount))+".bin";
         //std::cout<<"filename "<<filecount<<" "<<filename<<std::endl;
         std::string path="./Testing/";
@@ -130,6 +130,7 @@ int main(){
             // std::string path="../";
             // std::string filename = "Data.txt";
             int fileSize = GetFileSize(path+"Data/"+filename);
+            std::cout<<"filesize: "<<fileSize<<std::endl;
             int tailSize = fileSize%8;
             unsigned long int blockCount = fileSize/8;
             if(tailSize>0)
@@ -167,7 +168,7 @@ int main(){
             file.open(path+"Encrypted/"+filename+".encrypted", std::ios_base::binary);
             assert(file.is_open());
             file.write((char*)(&tailSize),4);
-            //std::cout<<"encrypt  tail size"<<tailSize<<std::endl;
+            std::cout<<"encrypt  tail size"<<tailSize<<std::endl;
             for(int i = 0; i < encrypted.size(); ++i){
                 file.write((char*)(&encrypted[i].intX), sizeof(int));
                 file.write((char*)(&encrypted[i].floatX), sizeof(unsigned long int));
@@ -208,9 +209,14 @@ int main(){
             assert(file.is_open());
             for(int i = 0; i < blockCount-1; ++i)
                 file.write((char*)(decrypted + i), sizeof(unsigned long int));
-            file.write((char*)(decrypted+blockCount-1),decryptTailSize);
+            if(decryptTailSize!=0)
+                file.write((char*)(decrypted+blockCount-1),decryptTailSize);
+            else
+                file.write((char*)(decrypted+blockCount-1),sizeof(unsigned long int));
             file.close();
             //std::cout<<fileCount<<" "<<k<<std::endl;
+            // if(!testSuite.compareFile(path+"Data/"+filename,path+"Decrypted/"+filename))
+            //     std::cout<<"trouble "<<filename<<std::endl;
         }
         std::cout<<filename<<" encrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToEncrypt<<std::endl;
         std::cout<<filename<<" decrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToDecrypt<<std::endl;
