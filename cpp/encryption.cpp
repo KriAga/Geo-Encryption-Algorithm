@@ -12,7 +12,9 @@
 #include <omp.h>
 #include <fstream>
 #include<vector>
-#include <sys/stat.h> 
+#include <sys/stat.h>
+#include "Testing/TestSuite.cpp"
+
 using namespace std;
 
 using json = nlohmann::json;
@@ -69,7 +71,7 @@ class Encryption{
             int floatY = distrFloat(eng);
             string baseX = to_string(intX - (intX % width));
             string baseY = to_string(intY- (intY % width));
-            int key  =  this->CMT[blank+"data"][blank+baseX][blank+baseY];
+            int key  =  stoi((string)(this->CMT[blank+"data"][blank+baseX][blank+baseY]));
             int floatXY = ( floatX << FPPB ) +floatY;
             int floatXYXor = floatXY ^ key;
             int beta = floatXYXor % 256;
@@ -107,7 +109,7 @@ class Encryption{
             intY = encrypted[i].intY;
             baseX = to_string(intX - (intX % width));
             baseY = to_string(intY- (intY % width));
-            key  =  (int)(this->CMT["data"][baseX][baseY]);
+            key  =  stoi((string)(this->CMT["data"][baseX][baseY]));
             floatX = (encrypted[i].floatX);
             floatY = (encrypted[i].floatY);
             floatXY = ( floatX << FPPB ) +floatY;
@@ -118,46 +120,54 @@ class Encryption{
 };
 
 int main(){
-    std::ifstream i("../CMT.json");
+    TestSuite testSuite;
+    testSuite.createFiles(100);
+    std::ifstream i("../CMT8.json");
     json j;
     i >> j;
     ifstream fstr;
-    string path="../";
-    string filename = "Data.mp3";
-    int fileSize = GetFileSize(path+filename);
-    unsigned char *bytes = new unsigned char[fileSize];
-    fstr.open(path+filename, std::ios::binary);
-    for(int i=0;i<fileSize;i++){
-        char byteChar;
-        fstr.read(reinterpret_cast<char*>(&byteChar), 1);
-        bytes[i] = byteChar;
+    // string path="../";
+    // string filename = "Data.txt";
+    for(int fileCount=0;fileCount<4;fileCount++){
+        std::string filename = "Data"+std::to_string((int)pow(10,fileCount))+".bin";
+        //std::cout<<"filename "<<filecount<<" "<<filename<<std::endl;
+        std::string path="./Testing/";
+        double totalTimeToEncrypt = 0;
+        double totalTimeToDecrypt = 0;
+        for(int k=0;k<testSuite.calculateIterations(filename);k++){
+            int fileSize = GetFileSize(path+"Data/"+filename);
+            unsigned char *bytes = new unsigned char[fileSize];
+            fstr.open(path+"Data/"+filename, std::ios::binary);
+            for(int i=0;i<fileSize;i++){
+                char byteChar;
+                fstr.read(reinterpret_cast<char*>(&byteChar), 1);
+                bytes[i] = byteChar;
+            }
+            double start, end;
+            start = omp_get_wtime();
+            unsigned char *decrypted;
+            Encryption enc = Encryption(j);
+            vector<Point> encrypted;
+            encrypted = enc.encryptByteArray(bytes,fileSize);
+            end = omp_get_wtime();
+            double delta = end-start;
+            totalTimeToEncrypt+=delta;
+            start = omp_get_wtime();
+            decrypted = enc.decryptToByteArray(encrypted,fileSize);
+            end = omp_get_wtime();
+            delta = end-start;
+            totalTimeToDecrypt+=delta;
+            ofstream fout;
+            std::ofstream file;
+            file.open(path+"Decrypted/"+filename, std::ios_base::binary);
+            assert(file.is_open());
+            for(int i = 0; i < fileSize; ++i)
+            file.write((char*)(decrypted + i * sizeof(decrypted[0])), sizeof(decrypted[0]));
+            file.close();
+        }
+        std::cout<<filename<<" encrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToEncrypt<<std::endl;
+        std::cout<<filename<<" decrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToDecrypt<<std::endl;
     }
-    double start, end;
-    start = omp_get_wtime();
-    unsigned char *decrypted;
-    Encryption enc = Encryption(j);
-    vector<Point> encrypted;
-    encrypted = enc.encryptByteArray(bytes,fileSize);
-    end = omp_get_wtime();
-    double delta = end-start;
-    cout<<"Time to encrypt "<<fileSize<<" Bytes: "<<delta<<endl;
-    start = omp_get_wtime();
-    decrypted = enc.decryptToByteArray(encrypted,fileSize);
-    end = omp_get_wtime();
-    delta = end-start;
-    cout<<"Time to decrypt to "<<fileSize<<" Bytes: "<<delta<<endl;
-    for(int i=0;i<fileSize;i++){
-        if(bytes[i]!=decrypted[i])
-            cout<<"trouble"<<i<<" "<<bytes[i]<<" "<<decrypted[i]<<endl;
-    }
-    ofstream fout;
-    std::ofstream file;
-    file.open(filename, std::ios_base::binary);
-    assert(file.is_open());
-    for(int i = 0; i < fileSize; ++i)
-       file.write((char*)(decrypted + i * sizeof(decrypted[0])), sizeof(decrypted[0]));
-    file.close();
     return 0;
-
 }
 

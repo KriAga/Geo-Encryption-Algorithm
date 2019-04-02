@@ -47,6 +47,6 @@ class TestSuite{
     int calculateIterations(std::string filename){
         filename.erase(filename.begin(), filename.begin()+4);
         filename.erase(filename.end()-4, filename.end());
-        return(100000/stoi(filename));
+        return(10000/stoi(filename));
     }
 };

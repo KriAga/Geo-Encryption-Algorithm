@@ -67,7 +67,8 @@ class Encryption{
                 unsigned int floatY = distrFloat(eng);
                 string baseX = to_string(intX - (intX % width));
                 string baseY = to_string(intY- (intY % width));
-                unsigned long int key  =  this->CMT[blank+"data"][blank+baseX][blank+baseY];
+                unsigned long int key  =  std::stoul((string)(this->CMT[blank+"data"][blank+baseX][blank+baseY]));
+                //std::cout<<key<<std::endl;
                 unsigned long int floatXY = ( ((unsigned long int)(floatX)) << FPPB ) +floatY;
                 unsigned long int floatXYXor = floatXY ^ key;
                 unsigned long int beta = (unsigned long int)(floatXYXor) % (totalChars);
@@ -95,6 +96,7 @@ class Encryption{
         int width = (int)(this->CMT["config"]["width"]);
         unsigned long int totalChars = pow(2,FPPB);
         unsigned int *bytes = new unsigned int[encrypted.size()];
+        std::cout<<encrypted.size()<<std::endl;
         #pragma omp parallel for
         for(int i=0;i<encrypted.size();i++){ 
             unsigned long int key,intX,intY,floatX,floatY;
@@ -104,7 +106,8 @@ class Encryption{
             intY = encrypted[i].intY;
             baseX = to_string(intX - (intX % width));
             baseY = to_string(intY- (intY % width));
-            key  =  (int)(this->CMT["data"][baseX][baseY]);
+            // std::cout<<baseX<<" "<<baseY<<std::endl;
+            key  =  std::stoul((string)(this->CMT["data"][baseX][baseY]));
             floatX = (encrypted[i].floatX);
             floatY = (encrypted[i].floatY);
             floatXY = ( floatX << FPPB ) +floatY;
@@ -114,86 +117,84 @@ class Encryption{
     }
 };
 int main(){
-    TestSuite testSuite;
-    testSuite.createFiles(100);
-    std::ifstream i("../CMT.json");
+    std::ifstream i("../CMT32.json");
     json j;
     i >> j;
     Encryption enc = Encryption(j);
-    for(int fileCount=0;fileCount<6;fileCount++){
-        std::string filename = "Data"+std::to_string((int)pow(10,fileCount))+".bin";
-        //std::cout<<"filename "<<filecount<<" "<<filename<<std::endl;
-        std::string path="./Testing/";
-        double totalTimeToEncrypt = 0;
-        double totalTimeToDecrypt = 0;
-        for(int k=0;k<testSuite.calculateIterations(filename);k++){
-            // vector<Point> encrypted;
-            // ifstream fstr;
-            // // string path="../";
-            // // string filename = "Data256.bin";
-            // int fileSize = GetFileSize(path+"Data/"+filename);
-            // int tailSize = fileSize%8;
-            // unsigned long int blockCount = fileSize/8;
-            // if(tailSize>0)
-            //     blockCount++;
-            // int fileSize = GetFileSize(path+filename);
-            // unsigned int *bytes = new unsigned int[fileSize/4];
-            // fstr.open(path+filename, std::ios::binary);
-            // unsigned int block = 0;
-            // for(int i=0;i<fileSize/4;i++){
-            //     fstr.read(reinterpret_cast<char*>(&block), 4);
-            //     bytes[i] = 0;
-            //     bytes[i] = block;
-            // }
-            std::vector<Point> encrypted;
-            //READ FILE INTO BYTES ARRAY
-            std::ifstream fstr;
-            // std::string path="../";
-            // std::string filename = "Data.txt";
-            int fileSize = GetFileSize(path+"Data/"+filename);
-            int tailSize = fileSize%4;
-            unsigned long int blockCount = fileSize/4;
-            if(tailSize>0)
-                blockCount++;
-            unsigned int *bytes = new unsigned int[blockCount];
-            fstr.open(path+"Data/"+filename, std::ios::binary);
-            unsigned int block = 0;
-            
-            for(int i=0;i<fileSize/4;i++){
-                fstr.read(reinterpret_cast<char*>(&block), 4);
-                bytes[i] = 0;
-                bytes[i] = block;
-            }
-            block=0;
-            if(tailSize>0){
-                fstr.read(reinterpret_cast<char*>(&block), tailSize);
-                bytes[blockCount-1] = 0;
-                bytes[blockCount-1] = block;
-            }
-            fstr.close();
-            double start, end;
-            start = omp_get_wtime();
-            encrypted = enc.encryptByteArray(bytes,fileSize/4);
-            end = omp_get_wtime();
-            double delta = end-start;
-            totalTimeToEncrypt+=delta;
-            //cout<<"Time to encrypt "<<fileSize<<" Bytes: "<<delta<<endl;
-            unsigned int *decrypted;
-            start = omp_get_wtime();
-            decrypted = enc.decryptToByteArray(encrypted);
-            end = omp_get_wtime();
-            delta = end-start;
-            totalTimeToDecrypt+=delta;
-            //cout<<"Time to decrypt to "<<fileSize<<" Bytes: "<<delta<<endl;
-            std::ofstream file;
-            file.open(path+"Decrypted/"+filename, std::ios_base::binary);
-            assert(file.is_open());
-            for(int i = 0; i < fileSize/4; ++i)
-                file.write((char*)(decrypted + i), sizeof(unsigned int));
-            file.close();
-        }
-        std::cout<<filename<<" encrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToEncrypt<<std::endl;
-        std::cout<<filename<<" decrypted "<<testSuite.calculateIterations(filename)<<"times in"<<totalTimeToDecrypt<<std::endl;
+    std::vector<Point> encrypted;
+    //READ FILE INTO BYTES ARRAY
+    std::ifstream fstr;
+    std::string path="./";
+    std::string filename = "Data.txt";
+    int fileSize = GetFileSize(path+"Data/"+filename);
+    int tailSize = fileSize%4;
+    unsigned long int blockCount = fileSize/4;
+    if(tailSize>0)
+        blockCount++;
+    unsigned int *bytes = new unsigned int[blockCount];
+    fstr.open(path+"Data/"+filename, std::ios::binary);
+    unsigned int block = 0;
+    
+    for(int i=0;i<fileSize/4;i++){
+        fstr.read(reinterpret_cast<char*>(&block), 4);
+        bytes[i] = 0;
+        bytes[i] = block;
     }
+    block=0;
+    if(tailSize>0){
+        fstr.read(reinterpret_cast<char*>(&block), tailSize);
+        bytes[blockCount-1] = 0;
+        bytes[blockCount-1] = block;
+    }
+    fstr.close();
+    double start, end;
+    start = omp_get_wtime();
+    encrypted = enc.encryptByteArray(bytes,blockCount);
+    end = omp_get_wtime();
+    double delta = end-start;
+    cout<<"Time to encrypt "<<fileSize<<" Bytes: "<<delta<<endl;
+
+    std::ofstream file;
+    file.open(path+"Encrypted/"+filename+".encrypted", std::ios_base::binary);
+    assert(file.is_open());
+    file.write((char*)(&tailSize),4);
+    std::cout<<"encrypt  tail size"<<tailSize<<std::endl;
+    for(int i = 0; i < encrypted.size(); ++i){
+        file.write((char*)(&encrypted[i].intX), sizeof(int));
+        file.write((char*)(&encrypted[i].floatX), sizeof(unsigned int));
+        file.write((char*)(&encrypted[i].intY), sizeof(int));
+        file.write((char*)(&encrypted[i].floatY), sizeof(unsigned int));
+    }
+    file.close();
+
+    fstr.open(path+"Encrypted/"+filename+".encrypted", std::ios_base::binary);
+    assert(fstr.is_open());
+    std::vector<Point> encryptedFromFile;
+    for(int i=0;i<blockCount;i++)
+        encryptedFromFile.push_back(Point());
+    int decryptTailSize = 0;
+    fstr.read(reinterpret_cast<char*>(&decryptTailSize), 4);
+    //std::cout<<"decrypt  tail size"<<decryptTailSize<<std::endl;
+    for(int i=0;i<blockCount;i++){
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intX), 4);
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatX), 4);
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].intY), 4);
+        fstr.read(reinterpret_cast<char*>(&encryptedFromFile[i].floatY), 4);
+    }
+    unsigned int *decrypted;
+    start = omp_get_wtime();
+    decrypted = enc.decryptToByteArray(encryptedFromFile);
+    end = omp_get_wtime();
+    delta = end-start;
+    cout<<"Time to decrypt to "<<fileSize<<" Bytes: "<<delta<<endl;
+    file.open(path+"Decrypted/"+filename, std::ios_base::binary);
+    assert(file.is_open());
+    for(int i = 0; i < fileSize/4; ++i)
+        file.write((char*)(decrypted + i), sizeof(unsigned int));
+    if(decryptTailSize!=0)
+        file.write((char*)(decrypted+blockCount-1),decryptTailSize);
+    else
+        file.write((char*)(decrypted+blockCount-1),sizeof(unsigned int));
+    file.close();
     return 0;
  }
