@@ -84,7 +84,7 @@ class Encryption{
             else{
                 diff = byte-beta;
             }
-            floatXYXor = beta + diff;
+            floatXYXor = floatXYXor + diff;
             int newFloatXY = floatXYXor ^ key;
             int newFloatX = (newFloatXY >> FPPB);
             int newFloatY = (newFloatXY & 255);

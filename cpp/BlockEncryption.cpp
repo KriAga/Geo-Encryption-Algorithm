@@ -80,7 +80,7 @@ class Encryption{
                 else{
                     diff = byte-beta;
                 }
-                floatXYXor = beta + diff;
+                floatXYXor = floatXYXor + diff;
                 unsigned long int newFloatXY = floatXYXor ^ key;
                 unsigned int newFloatX = (newFloatXY >> FPPB);
                 unsigned int newFloatY = (newFloatXY & (totalChars-1));

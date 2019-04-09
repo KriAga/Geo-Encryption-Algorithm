@@ -73,7 +73,7 @@ class Encryption{
                 else{
                     diff = byte-beta;
                 }
-                floatXYXor = beta + diff;
+                floatXYXor = floatXYXor + diff;
                 uint128_t newFloatXY = (uint128_t)(floatXYXor ^ key);
                 unsigned long int newFloatX = (unsigned long int)(newFloatXY >> FPPB);
                 unsigned long int newFloatY = (unsigned long int)(newFloatXY % totalChars);
