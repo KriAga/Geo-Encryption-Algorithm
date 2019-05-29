@@ -1,0 +1,1 @@
+cmp -l "path/to/file1" "path/to/file2" || echo "different"

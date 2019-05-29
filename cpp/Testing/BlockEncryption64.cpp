@@ -5,7 +5,7 @@
 #include<nlohmann/json.hpp>
 #include <omp.h>
 #include <boost/multiprecision/cpp_int.hpp>
-#include "Testing/TestSuite.cpp"
+#include "TestSuite.cpp"
 
 using json = nlohmann::json;
 using namespace boost::multiprecision;
@@ -73,7 +73,7 @@ class Encryption{
                 else{
                     diff = byte-beta;
                 }
-                floatXYXor = beta + diff;
+                floatXYXor = floatXYXor + diff;
                 uint128_t newFloatXY = (uint128_t)(floatXYXor ^ key);
                 unsigned long int newFloatX = (unsigned long int)(newFloatXY >> FPPB);
                 unsigned long int newFloatY = (unsigned long int)(newFloatXY % totalChars);
@@ -112,18 +112,18 @@ class Encryption{
 int main(){
     TestSuite testSuite;
     testSuite.createFiles(100);
-    std::ifstream i("../CMT64.json");
+    std::ifstream i("../../CMT64.json");
     json j;
     i >> j;
     Encryption enc = Encryption(j);
-    for(int fileCount=0;fileCount<1 ;fileCount++){
+    for(int fileCount=0;fileCount<6;fileCount++){
         std::string filename = "Data"+std::to_string((int)pow(10,fileCount))+".bin";
         //std::cout<<"filename "<<filecount<<" "<<filename<<std::endl;
         std::string path="./";
         double totalTimeToEncrypt = 0;
         double totalTimeToDecrypt = 0;
-        for(int k=0;k<testSuite.calculateIterations(filename);k++){
-
+        //for(int k=0;k<testSuite.calculateIterations(filename);k++){
+	for(int k=0;k<1;k++){
             std::vector<Point> encrypted;
             //READ FILE INTO BYTES ARRAY
             std::ifstream fstr;

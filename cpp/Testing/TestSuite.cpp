@@ -13,7 +13,7 @@ class TestSuite{
     }
     public: void createFiles(int maxFileSize){
         for(int i = 1; i<=maxFileSize*1024; i*=10){
-            createBinFile(std::string("./Testing/Data/Data") + std::to_string(i) + ".bin", i*1024);
+            createBinFile(std::string("./Data/Data") + std::to_string(i) + ".bin", i*1024);
         }
     }
     public: bool compareFile(std::string filename1, std::string filename2) {
