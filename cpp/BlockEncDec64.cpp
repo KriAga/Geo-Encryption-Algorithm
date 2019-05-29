@@ -54,24 +54,24 @@ class Encryption{
             std::uniform_int_distribution<> distrFloat(0 , pow(2,16));
             #pragma omp parallel for
             for(int i = 0 ;i<size;i++){
-                unsigned long int byte = bytes[i];    
+                unsigned long int blockValue = bytes[i];    
                 int intX = distrX(eng);
                 int intY = distrY(eng);
                 unsigned long int floatX = distrFloat(eng);
                 unsigned long int floatY = distrFloat(eng);
                 std::string baseX = std::to_string(intX - (intX % width));
                 std::string baseY = std::to_string(intY- (intY % width));
-                uint128_t key = (uint128_t)((this->CMT["data"][baseX][baseY]).get<std::string>());         
+                uint128_t key = (uint128_t)((this->CMT["data"][baseX][baseY]).get<std::string>());  
                 uint128_t floatXY = ( ((uint128_t)(floatX)) << FPPB ) +floatY;
                 uint128_t floatXYXor = ( key ^ floatXY);
                 uint128_t beta = (uint128_t)((floatXYXor) % (totalChars));
                 uint128_t diff=0;
-                if(beta > byte){
+                if(beta > blockValue){
                     diff = (uint128_t)(totalChars - beta);
-                    diff+= byte;
+                    diff+= blockValue;
                 }
                 else{
-                    diff = byte-beta;
+                    diff = blockValue-beta;
                 }
                 floatXYXor = floatXYXor + diff;
                 uint128_t newFloatXY = (uint128_t)(floatXYXor ^ key);
